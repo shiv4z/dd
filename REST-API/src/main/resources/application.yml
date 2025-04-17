@@ -1,0 +1,52 @@
+server:
+  port: 0
+spring:
+  application:
+    name: REST-API
+  datasource:
+    password: postgres
+    username: postgres
+    url: jdbc:postgresql://host.docker.internal:5432/postgres
+  boot:
+    admin:
+      client:
+        url: 
+          - http://host.docker.internal:1111  
+        instance:
+          service-url: http://host.docker.internal:${server.port}   
+          prefer-ip: false
+    
+  
+      
+             
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://host.docker.internal:9411/api/v2/spans
+      sender:
+        type: web
+  server:
+    port: 0
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+  endpoint:
+    health:
+      show-details: always
+
+        
+eureka:
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: http://host.docker.internal:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.cloud.client.ip-address}:${random.value}
+    hostname: ${HOSTNAME}

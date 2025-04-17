@@ -1,0 +1,126 @@
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - msnet
+
+  zipkin:
+    image: eclipse-temurin:17-jdk-jammy
+    container_name: zipkin
+    volumes:
+      - ./drive:/app
+    working_dir: /app
+    command: ["java", "-jar", "zipkin-server-3.5.0-exec.jar"]
+    ports:
+      - "9411:9411"
+    networks:
+      - msnet
+
+  eureka-server:
+    build:
+      context: ./SERVICE_REGISTRY
+      dockerfile: Dockerfile
+    image: service-registry
+    container_name: eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - msnet
+
+  admin-server:
+    build:
+      context: ./ADMIN_SERVER
+      dockerfile: Dockerfile
+    image: admin-server
+    container_name: admin
+    ports:
+      - "1111:1111"
+    networks:
+      - msnet
+
+  rest-api:
+    build:
+      context: ./REST-API
+      dockerfile: Dockerfile
+    image: rest-api
+    depends_on:
+      - eureka-server
+      - admin-server
+      - zipkin
+      - postgres
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - SPRING_APPLICATION_NAME=REST-API
+      - SERVER_PORT=0
+      - SPRING_BOOT_ADMIN_CLIENT_URL=http://admin:1111
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+      - SPRING_CLOUD_INETUTILS_IGNORED_INTERFACES=docker0
+      - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=172.18  
+    networks:
+      - msnet
+
+  rest-api-1:
+    build:
+      context: ./REST-API-1
+      dockerfile: Dockerfile
+    image: rest-api-1
+    container_name: rest-api-1
+    depends_on:
+      - eureka-server
+      - admin-server
+      - zipkin
+      - postgres
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - SPRING_APPLICATION_NAME=REST-API-1
+      - SERVER_PORT=0
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+      - SPRING_CLOUD_INETUTILS_IGNORED_INTERFACES=docker0
+      - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=172.18 
+    expose:
+      - "9090"
+    networks:
+      - msnet
+
+  api-gateway-1:
+    build:
+      context: ./API-GATEWAY-1
+      dockerfile: Dockerfile
+    image: api-gateway
+    container_name: api-gateway
+    depends_on:
+      - eureka-server
+      - admin-server
+      - zipkin
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    ports:
+      - "8088:8088"
+    networks:
+      - msnet
+
+volumes:
+  postgres_data:
+
+networks:
+  msnet:
