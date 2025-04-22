@@ -7,7 +7,7 @@ spring:
   datasource:
     password: postgres
     username: postgres
-    url: jdbc:postgresql://host.docker.internal:5432/postgres
+    url: jdbc:postgresql://postgres:5432/postgres
   jpa:
     show-sql: true
     hibernate:
@@ -23,10 +23,9 @@ spring:
   boot:
     admin:
       client:
-        url: 
-          - http://host.docker.internal:1111  
+        url: http://admin:1111  
         instance:
-          service-base-url: http://host.docker.internal:8088 
+          service-base-url: http://api-gateway:8088 
 
         
   cloud:
@@ -68,10 +67,10 @@ eureka:
     fetch-registry: true
     register-with-eureka: true
     service-url:
-      defaultZone: http://host.docker.internal:8761/eureka/
+      defaultZone: http://eureka-server:8761/eureka/
   instance:
-    hostname: host.docker.internal
-    prefer-ip-address: false
+    hostname: api-gateway
+    prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30
@@ -84,7 +83,7 @@ management:
       probability: 1.0
   zipkin:
     tracing:
-      endpoint: http://host.docker.internal:9411/api/v2/spans
+      endpoint: http://zipkin:9411/api/v2/spans
       sender:
         type: web
 
